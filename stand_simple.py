@@ -4,61 +4,7 @@ import os
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import time
-
-def loadRobot() -> mujoco.MjModel:
-    # model_path = os.path.join(os.path.dirname(__file__), "go2.xml")
-    xml_path = '/Users/jaeykim/idk-controller/description/scene.xml'
-    return mujoco.MjModel.from_xml_path(xml_path)
-
-def loadData(robot: mujoco.MjModel) -> mujoco.MjData:
-    return mujoco.MjData(robot)
-
-
-class Mujoco:
-    def __init__(self):
-        self.model = loadRobot()
-        self.data = loadData(self.model)
-        self.dt = self.model.opt.timestep  # 0.002
-
-    def loadRobot(self) -> mujoco.MjModel:
-        # model_path = os.path.join(os.path.dirname(__file__), "go2.xml")
-        xml_path = '/Users/jaeykim/mpc/ai_trot_gait/unitree_robotics_a1/scene2.xml'
-        self.model = mujoco.MjModel.from_xml_path(xml_path)
-    
-    def loadData(self, robot: mujoco.MjModel) -> mujoco.MjData:
-        self.data = mujoco.MjData(robot)
-
-    def nextStep(self):
-        mujoco.mj_step(self.model, self.data)
-
-    def inputControl(self, cmd: np.ndarray):
-        self.data.ctrl = cmd
-
-    def getQ(self) -> np.ndarray:
-        q = self.data.qpos
-        q_orient = R.from_quat([q[4], q[5], q[6], q[3]]).as_euler('xyz', degrees=False)
-        q = np.concatenate((q[0:3], q_orient, q[7:]))
-        return q
-    
-    def getQD(self) -> np.ndarray:
-        return self.data.qvel
-    
-    def getQDD(self) -> np.ndarray:
-        return self.data.qacc
-    
-    def getTau(self) -> np.ndarray:
-        return self.data.ctrl
-    
-    def getJointPositions(self) -> np.ndarray:
-        return self.data.qpos[-12:]
-    
-    def getJointVelocities(self) -> np.ndarray:
-        return self.data.qvel[-12:]
-    
-    def setJointPositions(self, joint_positions: np.ndarray):
-        """Set the last 12 joint positions"""
-        self.data.qpos[-12:] = joint_positions
-
+from mujoco_simulation import Mujoco
 
 class Go2Controller:
     def __init__(
@@ -161,10 +107,7 @@ def main():
     sim = Mujoco()
     
     # Get initial state
-    q0 = sim.getQ()
-    qd0 = sim.getQD()
-    qdd0 = sim.getQDD()
-    tau0 = sim.getTau()
+    q0, qd0, qdd0, tau0 = sim.getState()
     
     # Create controller with trajectory generation
     ctrl = Go2Controller(
@@ -188,8 +131,7 @@ def main():
         viewer.cam.elevation = -20
         viewer.cam.distance = 3
         viewer.cam.lookat[:] = [0, 0, 0.3]
-        
-        time.sleep(1)  # Wait a moment to see the initial position
+
         # Run simulation
         while viewer.is_running():
             # Update controller state
