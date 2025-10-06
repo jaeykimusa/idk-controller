@@ -51,3 +51,32 @@ class Mujoco:
 
     def reset(self):
         mujoco.mj_resetData(self.model, self.data)
+
+    def getJacobian(self, body_name: str, point: np.ndarray = None):
+        """
+        Compute the Jacobian (position and rotation) of a point on a body.
+        
+        Args:
+            body_name: Name of the body in the MJCF model (e.g., "FR_foot").
+            point: 3D point in world coordinates (defaults to body origin).
+
+        Returns:
+            jacp (3, nv), jacr (3, nv)
+        """
+        body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, body_name)
+
+        if body_id < 0:
+            raise ValueError(f"Body '{body_name}' not found in model.")
+
+        # If point is not given, use body origin (world position)
+        if point is None:
+            xpos = self.data.xpos[body_id]   # (3,)
+            point = np.copy(xpos)
+
+        nv = self.model.nv
+        jacp = np.zeros((3, nv))
+        jacr = np.zeros((3, nv))
+
+        mujoco.mj_jac(self.model, self.data, jacp, jacr, point, body_id)
+
+        return jacp, jacr

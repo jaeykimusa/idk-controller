@@ -98,6 +98,16 @@ class Go2Controller:
         tau = self.kp * (q_desired - q) + self.kd * (qd_desired - qd)
         return tau
     
+    def getCartesianPDControl(self) -> np.ndarray:
+        """Cartesian PD control (not used in this example)"""
+        # Placeholder for Cartesian PD control logic
+        q = self.q[:6]
+        qd = self.qd[:6]
+        q_desired = np.zeros(6)
+        qd_desired = np.zeros(6)
+        tau = self.kp * (q_desired - q) + self.kd * (qd_desired - qd)
+        return np.zeros(12)
+
     def is_trajectory_complete(self) -> bool:
         """Check if the trajectory interpolation is complete"""
         return self.alpha >= 1.0
@@ -123,6 +133,9 @@ def main():
     # Set initial crouched position
     initial_joint_positions = ctrl.q_initial
     sim.setJointPositions(initial_joint_positions)
+
+    # print(sim.getJacobian("FL_calf"))  # Print initial Jacobian for debugging
+    # exit()
 
     with mujoco.viewer.launch_passive(sim.model, sim.data) as viewer:
         
