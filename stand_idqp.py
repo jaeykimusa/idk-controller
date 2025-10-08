@@ -1,9 +1,10 @@
+# stand_idqp.py
+
+import numpy as np
 import mujoco
 from mujoco import viewer
-import os
-import numpy as np
-from scipy.spatial.transform import Rotation as R
-import time
+
+from pmodel import PinocchioModel
 from mujoco_simulation import Mujoco
 
 class Go2Controller:
@@ -112,13 +113,15 @@ class Go2Controller:
         """Check if the trajectory interpolation is complete"""
         return self.alpha >= 1.0
 
-
 def main():
+    pinocchio_robot = PinocchioModel()
+
+    pmodel = pinocchio_robot.model
+    pdata = pinocchio_robot.data
+
     sim = Mujoco()
-    
-    # Get initial state
     q0, qd0, qdd0, u0 = sim.getState()
-    
+
     # Create controller with trajectory generation
     ctrl = Go2Controller(
         q0=q0,
@@ -134,38 +137,34 @@ def main():
     initial_joint_positions = ctrl.q_initial
     sim.setJointPositions(initial_joint_positions)
 
-    # print(sim.getJacobian("FL_calf"))  # Print initial Jacobian for debugging
-    # exit()
-
     with mujoco.viewer.launch_passive(sim.model, sim.data) as viewer:
-        
-        # Default configure camera
-        viewer.cam.azimuth = 135
-        viewer.cam.elevation = -20
-        viewer.cam.distance = 3
-        viewer.cam.lookat[:] = [0, 0, 0.3]
-
-        # Run simulation
-        while viewer.is_running():
-            # Update controller state
-            q = sim.getQ()
-            qd = sim.getQD()
-            qdd = sim.getQDD()
-            u = sim.getU()
-            ctrl.update_state(q, qd, qdd, u)
             
-            # Get control with trajectory generation
-            control = ctrl.getJointPDControlWithTrajectory(sim.dt)
-            sim.inputControl(control)
-            
-            # Step simulation
-            sim.nextStep()
-            viewer.sync()
-            
-            # Optional: Print progress
-            if not ctrl.is_trajectory_complete():
-                print(f"Trajectory progress: {ctrl.alpha:.2%}")
+            # Default configure camera
+            viewer.cam.azimuth = 135
+            viewer.cam.elevation = -20
+            viewer.cam.distance = 3
+            viewer.cam.lookat[:] = [0, 0, 0.3]
+
+            # Run simulation
+            while viewer.is_running():
+                # Update controller state
+                q = sim.getQ()
+                qd = sim.getQD()
+                qdd = sim.getQDD()
+                u = sim.getu()
+                ctrl.update_state(q, qd, qdd, u)
+                
+                # Get control with trajectory generation
+                control = ctrl.getJointPDControlWithTrajectory(sim.dt)
+                sim.inputControl(control)
+                
+                # Step simulation
+                sim.nextStep()
+                viewer.sync()
+                
+                # Optional: Print progress
+                if not ctrl.is_trajectory_complete():
+                    print(f"Trajectory progress: {ctrl.alpha:.2%}")
 
 
-if __name__ == "__main__":
-    main()
+

@@ -29,15 +29,15 @@ class Mujoco:
     def getQDD(self) -> np.ndarray:
         return self.data.qacc
     
-    def getTau(self) -> np.ndarray:
+    def getU(self) -> np.ndarray:
         return self.data.ctrl
     
     def getState(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         q = self.getQ()
         qd = self.getQD()
         qdd = self.getQDD()
-        tau = self.getTau()
-        return q, qd, qdd, tau
+        u = self.getU()
+        return q, qd, qdd, u
 
     def getJointPositions(self) -> np.ndarray:
         return self.data.qpos[-12:]
